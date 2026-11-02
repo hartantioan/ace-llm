@@ -8,7 +8,7 @@ import sys
 import threading
 from typing import Any
 
-ORCHESTRATOR_IP = "172.17.0.1"
+ORCHESTRATOR_IP = "host.docker.internal"
 ORCHESTRATOR_PORT = 65432
 ORCHESTRATOR_ADDR = (ORCHESTRATOR_IP, ORCHESTRATOR_PORT)
 

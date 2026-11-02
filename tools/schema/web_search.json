@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "web_search": {
+      "type": "object",
+      "properties": {
+        "request": {
+          "type": "object",
+          "properties": {
+            "query": { "type": "string", "minLength": 1, "description": "What to search for." }
+          },
+          "required": ["query"]
+        },
+        "response": { "type": "string", "description": "Text snippets about the topic." }
+      },
+      "required": ["request", "response"]
+    }
+  },
+  "required": ["web_search"]
+}

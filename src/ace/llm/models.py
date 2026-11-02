@@ -51,6 +51,9 @@ class ModelsEnum(StrEnum):
     LOCAL = "local"
     VLLM_PARSED = "vllm_parsed"
 
+    # Local models served by Ollama (tag must match `ollama list`)
+    QWEN_3_5_9B = "qwen3.5:9b-64k"
+
 
 MODEL_PROVIDERS = {
     ModelsEnum.GPT_4_1_2025_04_14: "openai",
@@ -93,6 +96,7 @@ MODEL_PROVIDERS = {
     ModelsEnum.GEMINI_2_5_PRO_PREVIEW_05_06: "google",
     ModelsEnum.LOCAL: "local",
     ModelsEnum.VLLM_PARSED: "vllm_parsed",
+    ModelsEnum.QWEN_3_5_9B: "ollama",
 }
 
 MODEL_NAMES = {
@@ -136,4 +140,5 @@ MODEL_NAMES = {
     ModelsEnum.GEMINI_2_5_PRO_PREVIEW_05_06: "Gemini 2.5 Pro Preview 05/06",
     ModelsEnum.LOCAL: "Local model",
     ModelsEnum.VLLM_PARSED: "VLLM parsed model",
+    ModelsEnum.QWEN_3_5_9B: "Qwen 3.5 9B (Ollama, local)",
 }

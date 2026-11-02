@@ -13,7 +13,7 @@ listener_ip = socket.gethostbyname(socket.gethostname())
 listener_port = 8080
 listener_addr = (listener_ip, listener_port)
 
-ORCHESTRATOR_IP = "172.17.0.1"
+ORCHESTRATOR_IP = "host.docker.internal"
 ORCHESTRATOR_PORT = 65432
 ORCHESTRATOR_ADDR = (ORCHESTRATOR_IP, ORCHESTRATOR_PORT)
 

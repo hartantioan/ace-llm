@@ -15,8 +15,8 @@ load_dotenv()
 
 
 @click.command()
-@click.option("--llm-model", default="gpt-4o-mini-2024-07-18", show_default=True, help="LLM model to use")
-@click.option("--embedding-model", default="text-embedding-3-small", show_default=True, help="Embedding model to use")
+@click.option("--llm-model", default="qwen3.5:9b-64k", show_default=True, help="LLM model to use")
+@click.option("--embedding-model", default="nomic-embed-text", show_default=True, help="Embedding model to use")
 @click.option("--tool-manifest", default="tools/manifest.json", show_default=True, help="Path to tool manifest JSON")
 @click.option("--temperature", default=0.0, type=float, show_default=True, help="LLM temperature")
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose logging")
@@ -42,12 +42,12 @@ def cli(llm_model, embedding_model, tool_manifest, temperature, verbose, very_ve
 
     # Map string to enum (fallback to value if not found)
     llm_enum = (
-        ModelsEnum(llm_model) if llm_model in ModelsEnum._value2member_map_ else ModelsEnum.GPT_4O_MINI_2024_07_18
+        ModelsEnum(llm_model) if llm_model in ModelsEnum._value2member_map_ else ModelsEnum.QWEN_3_5_9B
     )
     embedding_enum = (
         EmbeddingsEnum(embedding_model)
         if embedding_model in EmbeddingsEnum._value2member_map_
-        else EmbeddingsEnum.OPENAI_3_SMALL
+        else EmbeddingsEnum.OLLAMA_NOMIC_EMBED_TEXT
     )
     config = AppConfig(
         llm_model=llm_enum,

@@ -163,6 +163,7 @@ Programming Language and Style Rules:
 - Do not use function calls as subexpressions; assign results before continuing.
 - Do not use functions that are not built-in or provided abstract apps.
 - Declare all variables with types, and ensure assignments match these types.
+- Declare every variable with its type at the top level of main(), never inside if/else/for blocks. Inside a block, only reassign without a type annotation (for example x = 5). Do not use +=.
 - Assign outputs of tools to a variable that has the correct type annotation.
 - Extract fields from tool outputs into variables with accurate types before using them.
 - The main function must be named main(), and it should return the computed output.

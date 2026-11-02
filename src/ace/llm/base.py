@@ -1,10 +1,14 @@
+import os
 from typing import Any
 
 from langchain_anthropic import ChatAnthropic
 from langchain_core.language_models.chat_models import BaseChatModel
+from langchain_ollama import ChatOllama
 from langchain_openai import ChatOpenAI
 
 from .models import MODEL_PROVIDERS, ModelsEnum
+
+DEFAULT_OLLAMA_BASE_URL = "http://localhost:11434"
 
 
 def create_llm(model: ModelsEnum, **kwargs: Any) -> BaseChatModel:
@@ -26,6 +30,10 @@ def create_llm(model: ModelsEnum, **kwargs: Any) -> BaseChatModel:
         return ChatOpenAI(model=model.value, **kwargs)
     elif provider == "anthropic":
         return ChatAnthropic(model_name=model.value, **kwargs)
+    elif provider == "ollama":
+        # Fully local: no API key, no internet. Override the server address with OLLAMA_BASE_URL.
+        kwargs.setdefault("base_url", os.getenv("OLLAMA_BASE_URL", DEFAULT_OLLAMA_BASE_URL))
+        return ChatOllama(model=model.value, **kwargs)
     elif provider == "meta":
         raise NotImplementedError("Meta/Llama provider support not yet implemented. Please add your backend.")
     else:

@@ -1,0 +1,200 @@
+diff --git a/pyproject.toml b/pyproject.toml
+index db292bf..50d6cf4 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -10,6 +10,8 @@ dependencies = [
+     "langchain_community>=0.3.25",
+     "langchain_openai>=0.3.22",
+     "langchain_anthropic>=0.3.15",
++    "langchain_ollama>=0.3.4",
++    "python-dotenv>=1.0.1",
+     "faiss-cpu>=1.11.0",
+     "transformers>=4.52.4",
+     "tensorflow>=2.19.0",
+diff --git a/src/ace/cli/interface.py b/src/ace/cli/interface.py
+index 0675766..c973443 100644
+--- a/src/ace/cli/interface.py
++++ b/src/ace/cli/interface.py
+@@ -15,8 +15,8 @@ load_dotenv()
+ 
+ 
+ @click.command()
+-@click.option("--llm-model", default="gpt-4o-mini-2024-07-18", show_default=True, help="LLM model to use")
+-@click.option("--embedding-model", default="text-embedding-3-small", show_default=True, help="Embedding model to use")
++@click.option("--llm-model", default="qwen3.5:9b", show_default=True, help="LLM model to use")
++@click.option("--embedding-model", default="nomic-embed-text", show_default=True, help="Embedding model to use")
+ @click.option("--tool-manifest", default="tools/manifest.json", show_default=True, help="Path to tool manifest JSON")
+ @click.option("--temperature", default=0.0, type=float, show_default=True, help="LLM temperature")
+ @click.option("--verbose", "-v", is_flag=True, help="Enable verbose logging")
+@@ -42,12 +42,12 @@ def cli(llm_model, embedding_model, tool_manifest, temperature, verbose, very_ve
+ 
+     # Map string to enum (fallback to value if not found)
+     llm_enum = (
+-        ModelsEnum(llm_model) if llm_model in ModelsEnum._value2member_map_ else ModelsEnum.GPT_4O_MINI_2024_07_18
++        ModelsEnum(llm_model) if llm_model in ModelsEnum._value2member_map_ else ModelsEnum.QWEN_3_5_9B
+     )
+     embedding_enum = (
+         EmbeddingsEnum(embedding_model)
+         if embedding_model in EmbeddingsEnum._value2member_map_
+-        else EmbeddingsEnum.OPENAI_3_SMALL
++        else EmbeddingsEnum.OLLAMA_NOMIC_EMBED_TEXT
+     )
+     config = AppConfig(
+         llm_model=llm_enum,
+diff --git a/src/ace/llm/base.py b/src/ace/llm/base.py
+index b7babf1..3587bab 100644
+--- a/src/ace/llm/base.py
++++ b/src/ace/llm/base.py
+@@ -1,11 +1,15 @@
++import os
+ from typing import Any
+ 
+ from langchain_anthropic import ChatAnthropic
+ from langchain_core.language_models.chat_models import BaseChatModel
++from langchain_ollama import ChatOllama
+ from langchain_openai import ChatOpenAI
+ 
+ from .models import MODEL_PROVIDERS, ModelsEnum
+ 
++DEFAULT_OLLAMA_BASE_URL = "http://localhost:11434"
++
+ 
+ def create_llm(model: ModelsEnum, **kwargs: Any) -> BaseChatModel:
+     """
+@@ -26,6 +30,10 @@ def create_llm(model: ModelsEnum, **kwargs: Any) -> BaseChatModel:
+         return ChatOpenAI(model=model.value, **kwargs)
+     elif provider == "anthropic":
+         return ChatAnthropic(model_name=model.value, **kwargs)
++    elif provider == "ollama":
++        # Fully local: no API key, no internet. Override the server address with OLLAMA_BASE_URL.
++        kwargs.setdefault("base_url", os.getenv("OLLAMA_BASE_URL", DEFAULT_OLLAMA_BASE_URL))
++        return ChatOllama(model=model.value, **kwargs)
+     elif provider == "meta":
+         raise NotImplementedError("Meta/Llama provider support not yet implemented. Please add your backend.")
+     else:
+diff --git a/src/ace/llm/embeddings.py b/src/ace/llm/embeddings.py
+index 9887d63..e466b98 100644
+--- a/src/ace/llm/embeddings.py
++++ b/src/ace/llm/embeddings.py
+@@ -1,26 +1,34 @@
++import os
+ from enum import StrEnum
+ from typing import Any
+ 
++from langchain_ollama import OllamaEmbeddings
+ from langchain_openai import OpenAIEmbeddings
+ 
+ # Add more imports as you add providers (e.g., CohereEmbeddings, HuggingFaceEmbeddings, etc.)
+ 
++DEFAULT_OLLAMA_BASE_URL = "http://localhost:11434"
++
+ 
+ class EmbeddingsEnum(StrEnum):
+     OPENAI_3_SMALL = "text-embedding-3-small"
+     OPENAI_3_LARGE = "text-embedding-3-large"
++    # Local embedding models served by Ollama (`ollama pull nomic-embed-text`)
++    OLLAMA_NOMIC_EMBED_TEXT = "nomic-embed-text"
+     # Add more as needed, e.g. COHERE = "cohere-embed-v3", HUGGINGFACE = "sentence-transformers/all-MiniLM-L6-v2"
+ 
+ 
+ EMBEDDING_PROVIDERS = {
+     EmbeddingsEnum.OPENAI_3_SMALL: "openai",
+     EmbeddingsEnum.OPENAI_3_LARGE: "openai",
++    EmbeddingsEnum.OLLAMA_NOMIC_EMBED_TEXT: "ollama",
+     # Add more as needed
+ }
+ 
+ EMBEDDING_NAMES = {
+     EmbeddingsEnum.OPENAI_3_SMALL: "OpenAI Embeddings 3 Small",
+     EmbeddingsEnum.OPENAI_3_LARGE: "OpenAI Embeddings 3 Large",
++    EmbeddingsEnum.OLLAMA_NOMIC_EMBED_TEXT: "Nomic Embed Text (Ollama, local)",
+     # Add more as needed
+ }
+ 
+@@ -40,6 +48,9 @@ def create_embedding(model: EmbeddingsEnum, **kwargs: Any):
+     provider = EMBEDDING_PROVIDERS[model]
+     if provider == "openai":
+         return OpenAIEmbeddings(model=model.value, **kwargs)
++    elif provider == "ollama":
++        kwargs.setdefault("base_url", os.getenv("OLLAMA_BASE_URL", DEFAULT_OLLAMA_BASE_URL))
++        return OllamaEmbeddings(model=model.value, **kwargs)
+     # Add more providers here
+     else:
+         raise ValueError(f"Unknown or unsupported embedding provider: {provider}")
+diff --git a/src/ace/llm/models.py b/src/ace/llm/models.py
+index 0a6b5bb..fc27890 100644
+--- a/src/ace/llm/models.py
++++ b/src/ace/llm/models.py
+@@ -51,6 +51,9 @@ class ModelsEnum(StrEnum):
+     LOCAL = "local"
+     VLLM_PARSED = "vllm_parsed"
+ 
++    # Local models served by Ollama (tag must match `ollama list`)
++    QWEN_3_5_9B = "qwen3.5:9b"
++
+ 
+ MODEL_PROVIDERS = {
+     ModelsEnum.GPT_4_1_2025_04_14: "openai",
+@@ -93,6 +96,7 @@ MODEL_PROVIDERS = {
+     ModelsEnum.GEMINI_2_5_PRO_PREVIEW_05_06: "google",
+     ModelsEnum.LOCAL: "local",
+     ModelsEnum.VLLM_PARSED: "vllm_parsed",
++    ModelsEnum.QWEN_3_5_9B: "ollama",
+ }
+ 
+ MODEL_NAMES = {
+@@ -136,4 +140,5 @@ MODEL_NAMES = {
+     ModelsEnum.GEMINI_2_5_PRO_PREVIEW_05_06: "Gemini 2.5 Pro Preview 05/06",
+     ModelsEnum.LOCAL: "Local model",
+     ModelsEnum.VLLM_PARSED: "VLLM parsed model",
++    ModelsEnum.QWEN_3_5_9B: "Qwen 3.5 9B (Ollama, local)",
+ }
+diff --git a/src/ace/plan/concrete.py b/src/ace/plan/concrete.py
+index bdfc298..4682ff1 100644
+--- a/src/ace/plan/concrete.py
++++ b/src/ace/plan/concrete.py
+@@ -16,10 +16,10 @@ import astor
+ from langchain.schema import Document
+ from langchain_community.vectorstores import FAISS
+ from langchain_community.vectorstores.utils import DistanceStrategy
++from langchain_core.embeddings import Embeddings
+ from langchain_core.language_models.chat_models import BaseChatModel
+ from langchain_core.output_parsers import JsonOutputParser
+ from langchain_core.runnables import Runnable, RunnableLambda, RunnablePassthrough
+-from langchain_openai import OpenAIEmbeddings
+ from pydantic import model_validator
+ 
+ from ..analysis import Analyzer
+@@ -303,7 +303,7 @@ class ConcretePlannerBase(ABC):
+ class SimpleConcretePlanner(ConcretePlannerBase):
+     tool_manager: ToolManager
+     base_llm: BaseChatModel
+-    embeddings: OpenAIEmbeddings
++    embeddings: Embeddings
+     faiss_store: FAISS
+     filter_threshold: float
+     compat_chain: Runnable
+@@ -314,7 +314,7 @@ class SimpleConcretePlanner(ConcretePlannerBase):
+         self,
+         tool_manager: ToolManager,
+         base_llm: BaseChatModel,
+-        embedding_model: OpenAIEmbeddings,
++        embedding_model: Embeddings,
+         context: str = "",
+         analyzer: Optional[Analyzer] = None,
+         filter_threshold: float = 0.8,
+diff --git a/src/ace/setup.py b/src/ace/setup.py
+index 2aacf63..ffadab5 100644
+--- a/src/ace/setup.py
++++ b/src/ace/setup.py
+@@ -13,8 +13,8 @@ from ace.tools.manager import ToolManager
+ class AppConfig:
+     def __init__(
+         self,
+-        llm_model=ModelsEnum.GPT_4O_MINI_2024_07_18,
+-        embedding_model=EmbeddingsEnum.OPENAI_3_SMALL,
++        llm_model=ModelsEnum.QWEN_3_5_9B,
++        embedding_model=EmbeddingsEnum.OLLAMA_NOMIC_EMBED_TEXT,
+         tool_manifest="tools/manifest.json",
+         temperature=0.0,
+     ):
