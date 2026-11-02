@@ -52,7 +52,7 @@ class ModelsEnum(StrEnum):
     VLLM_PARSED = "vllm_parsed"
 
     # Local models served by Ollama (tag must match `ollama list`)
-    QWEN_3_5_9B = "qwen3.5:9b-64k"
+    QWEN_3_5_9B = "qwen3.5:9b"
 
 
 MODEL_PROVIDERS = {

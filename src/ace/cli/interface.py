@@ -15,7 +15,7 @@ load_dotenv()
 
 
 @click.command()
-@click.option("--llm-model", default="qwen3.5:9b-64k", show_default=True, help="LLM model to use")
+@click.option("--llm-model", default="qwen3.5:9b", show_default=True, help="LLM model to use")
 @click.option("--embedding-model", default="nomic-embed-text", show_default=True, help="Embedding model to use")
 @click.option("--tool-manifest", default="tools/manifest.json", show_default=True, help="Path to tool manifest JSON")
 @click.option("--temperature", default=0.0, type=float, show_default=True, help="LLM temperature")
